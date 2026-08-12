@@ -1,6 +1,13 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 
 const KEY = 'changelog:entries';
+
+// The Upstash integration sometimes sets KV_REST_API_URL/TOKEN and sometimes
+// UPSTASH_REDIS_REST_URL/TOKEN depending on how it was connected — support both.
+const kv = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {

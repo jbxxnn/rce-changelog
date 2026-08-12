@@ -18,10 +18,10 @@ entries. No login required.
      needs a place to store entries. That's the next step.
 
 3. **Add storage.**
-   - In your new Vercel project, go to the **Storage** tab → **Create
-     Database** → choose **KV** (Vercel's built-in key-value store, powered
-     by Upstash) → follow the prompts to create it and connect it to this
-     project.
+   - In your new Vercel project, go to the **Storage** tab → **Browse
+     Storage** → under **Marketplace Database Providers**, choose
+     **Upstash** → pick **Redis** → follow the prompts to create a
+     database and connect it to this project.
    - Vercel will automatically add the connection details your app needs —
      you don't have to copy/paste anything.
 
@@ -48,4 +48,3 @@ entries. No login required.
   with the link, by design (simplicity for a small team). Adding a
   password or login is possible but is a separate step — ask if you want
   that added.
-# rce-changelog
