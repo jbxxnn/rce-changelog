@@ -89,7 +89,7 @@ export default function Home() {
       <>
         <GlobalStyle />
         <div className="signin-screen">
-          <p>Loading…</p>
+          {/* <p>Loading…</p> */}
         </div>
       </>
     );
@@ -105,7 +105,7 @@ export default function Home() {
         <div className="signin-screen">
           <div className="signin-card">
             <div className="masthead-badge">LOG</div>
-            <h1>Team Log</h1>
+            <h1>RCE Team Log</h1>
             <p>Sign in with your re-circuit.com account to view or add entries.</p>
             <button className="add-btn" onClick={() => signIn('google')}>
               Sign in with Google
@@ -612,8 +612,8 @@ function GlobalStyle() {
       :root {
         --paper: #f3f4ef;
         --card: #ffffff;
-        --ink: #1b2434;
-        --ink-soft: #5b6472;
+        --ink: #037434;
+        --ink-soft: #08a44b;
         --line: #dbddd5;
         --danger: #b3261e;
       }
