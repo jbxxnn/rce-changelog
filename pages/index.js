@@ -613,7 +613,7 @@ function GlobalStyle() {
         --paper: #f3f4ef;
         --card: #ffffff;
         --ink: #037434;
-        --ink-soft: #08a44b;
+        --ink-soft: #5b6472;
         --line: #dbddd5;
         --danger: #b3261e;
       }
