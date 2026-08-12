@@ -1,4 +1,6 @@
 import { Redis } from '@upstash/redis';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
 
 const KEY = 'changelog:entries';
 
@@ -10,6 +12,12 @@ const kv = new Redis({
 });
 
 export default async function handler(req, res) {
+  const session = await getServerSession(req, res, authOptions);
+  if (!session) {
+    res.status(401).json({ error: 'Sign in required.' });
+    return;
+  }
+
   if (req.method === 'GET') {
     try {
       const entries = (await kv.get(KEY)) || [];
@@ -23,7 +31,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
-      const { title, category, details, author } = req.body || {};
+      const { title, category, details } = req.body || {};
 
       if (!title || typeof title !== 'string' || !title.trim()) {
         res.status(400).json({ error: 'A short description of what changed is required.' });
@@ -40,7 +48,7 @@ export default async function handler(req, res) {
         title: title.trim().slice(0, 300),
         category: safeCategory,
         details: (details || '').trim().slice(0, 2000),
-        author: (author || '').trim().slice(0, 100) || 'Anonymous',
+        author: session.user.name || session.user.email,
         date: new Date().toISOString(),
       };
 

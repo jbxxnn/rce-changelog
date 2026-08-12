@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 const CATEGORY_META = {
   website: { label: 'Website', color: '#0F6E66', bg: '#E6F1EF' },
@@ -19,6 +20,8 @@ function monthKey(iso) {
 }
 
 export default function Home() {
+  const { data: session, status } = useSession();
+
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -31,11 +34,12 @@ export default function Home() {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('website');
   const [details, setDetails] = useState('');
-  const [author, setAuthor] = useState('');
 
   useEffect(() => {
-    loadEntries();
-  }, []);
+    if (status === 'authenticated') {
+      loadEntries();
+    }
+  }, [status]);
 
   async function loadEntries() {
     setLoading(true);
@@ -63,14 +67,13 @@ export default function Home() {
       const res = await fetch('/api/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, category, details, author }),
+        body: JSON.stringify({ title, category, details }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
       setEntries((prev) => [...prev, data.entry]);
       setTitle('');
       setDetails('');
-      setAuthor('');
       setCategory('website');
       setFormOpen(false);
     } catch (err) {
@@ -80,6 +83,93 @@ export default function Home() {
     }
   }
 
+  // --- Auth gate ---
+  if (status === 'loading') {
+    return (
+      <>
+        <GlobalStyle />
+        <div className="signin-screen">
+          <p>Loading…</p>
+        </div>
+      </>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <>
+        <Head>
+          <title>Team Log</title>
+        </Head>
+        <GlobalStyle />
+        <div className="signin-screen">
+          <div className="signin-card">
+            <div className="masthead-badge">LOG</div>
+            <h1>Team Log</h1>
+            <p>Sign in with your re-circuit.com account to view or add entries.</p>
+            <button className="add-btn" onClick={() => signIn('google')}>
+              Sign in with Google
+            </button>
+          </div>
+        </div>
+        <style jsx>{`
+          .signin-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          }
+          .signin-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 36px 32px;
+            max-width: 360px;
+            text-align: center;
+          }
+          .masthead-badge {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: var(--paper);
+            background: var(--ink);
+            padding: 8px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            transform: rotate(-3deg);
+            margin-bottom: 16px;
+          }
+          h1 {
+            font-size: 22px;
+            margin: 0 0 8px;
+          }
+          p {
+            color: var(--ink-soft);
+            font-size: 14px;
+            margin: 0 0 20px;
+          }
+          .add-btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: 100px;
+            border: none;
+            background: var(--ink);
+            color: var(--paper);
+            cursor: pointer;
+          }
+          .add-btn:hover {
+            opacity: 0.9;
+          }
+        `}</style>
+      </>
+    );
+  }
+
+  // --- Authenticated app ---
   let filtered = entries.filter((e) => activeFilter === 'all' || e.category === activeFilter);
   if (searchTerm.trim()) {
     const t = searchTerm.toLowerCase();
@@ -104,13 +194,20 @@ export default function Home() {
           rel="stylesheet"
         />
       </Head>
+      <GlobalStyle />
 
       <div className="app">
         <div className="masthead">
           <div className="masthead-badge">LOG</div>
-          <div>
+          <div className="masthead-text">
             <h1>Team Log</h1>
             <p>Every ship, tweak, and post — in one place. Add anything worth remembering.</p>
+          </div>
+          <div className="whoami">
+            <span>{session.user.name || session.user.email}</span>
+            <button className="signout-link" onClick={() => signOut()}>
+              Sign out
+            </button>
           </div>
         </div>
 
@@ -170,15 +267,6 @@ export default function Home() {
                 onChange={(e) => setDetails(e.target.value)}
               />
             </div>
-            <div className="form-row">
-              <label>Your name</label>
-              <input
-                type="text"
-                placeholder="e.g. Sam"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-              />
-            </div>
             <div className="form-actions">
               <button className="btn-secondary" onClick={() => setFormOpen(false)} disabled={saving}>
                 Cancel
@@ -225,27 +313,6 @@ export default function Home() {
         </main>
       </div>
 
-      <style jsx global>{`
-        :root {
-          --paper: #f3f4ef;
-          --card: #ffffff;
-          --ink: #1b2434;
-          --ink-soft: #5b6472;
-          --line: #dbddd5;
-          --danger: #b3261e;
-        }
-        * {
-          box-sizing: border-box;
-        }
-        body {
-          margin: 0;
-          background: var(--paper);
-          color: var(--ink);
-          font-family: 'Inter', sans-serif;
-          -webkit-font-smoothing: antialiased;
-        }
-      `}</style>
-
       <style jsx>{`
         .app {
           max-width: 780px;
@@ -257,6 +324,9 @@ export default function Home() {
           align-items: flex-start;
           gap: 16px;
           margin-bottom: 28px;
+        }
+        .masthead-text {
+          flex: 1;
         }
         .masthead-badge {
           font-family: 'IBM Plex Mono', monospace;
@@ -281,6 +351,28 @@ export default function Home() {
           margin: 0;
           color: var(--ink-soft);
           font-size: 14.5px;
+        }
+        .whoami {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11.5px;
+          color: var(--ink-soft);
+          flex-shrink: 0;
+          margin-top: 4px;
+          white-space: nowrap;
+        }
+        .signout-link {
+          background: none;
+          border: none;
+          padding: 0;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: var(--ink-soft);
+          text-decoration: underline;
+          cursor: pointer;
         }
         .controls {
           display: flex;
@@ -502,8 +594,39 @@ export default function Home() {
             width: 64px;
             font-size: 10px;
           }
+          .masthead {
+            flex-wrap: wrap;
+          }
+          .whoami {
+            align-items: flex-start;
+          }
         }
       `}</style>
     </>
+  );
+}
+
+function GlobalStyle() {
+  return (
+    <style jsx global>{`
+      :root {
+        --paper: #f3f4ef;
+        --card: #ffffff;
+        --ink: #1b2434;
+        --ink-soft: #5b6472;
+        --line: #dbddd5;
+        --danger: #b3261e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+    `}</style>
   );
 }
